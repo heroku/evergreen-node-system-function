@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -eu
+set -o pipefail
+
+layers_dir=$1
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo -e 'launch = true' > $layers_dir/system-function.toml
+system_dir=$layers_dir/system-function
+mkdir -p $system_dir
+
+echo "---> Evergreen Node System Function Buildpack"
+
+# COPY and install node/npm on into a layer
+cp -R $DIR/../src/* $system_dir
+pushd $system_dir
+npm install
+popd
+
+mkdir -p $system_dir/env.launch
+echo -n "$system_dir" > $system_dir/env.launch/FUNCTION_URI.override
+echo -n "/workspace" > $system_dir/env.launch/USER_FUNCTION_URI.override
+
+exit 0
