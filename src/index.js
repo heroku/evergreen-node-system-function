@@ -80,7 +80,10 @@ module.exports = async (message) => {
   }
   return result;
 };
-
-module.exports.$argumentType = 'message';
+module.exports.$argumentTransformers = [
+  (message) => {
+    return message;
+  }
+];
 module.exports.$init = userFn.$init;
 module.exports.$destroy = userFn.$destroy;
