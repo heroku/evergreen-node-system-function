@@ -1,0 +1,12 @@
+api = "0.2"
+
+[buildpack]
+id = "heroku/evergreen-node-system-function"
+name = "Evergreen Node System Function"
+version = "0.0.1"
+
+[[stacks]]
+id = "heroku-18"
+
+[[stacks]]
+id = "io.buildpacks.stacks.bionic"
