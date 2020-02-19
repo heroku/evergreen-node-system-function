@@ -2,4 +2,12 @@
 
 set -eo pipefail
 
+cat << EOF > "$2"
+  [[requires]]
+  name = "riff-invoker-node"
+
+  [requires.metadata]
+  fn = ".evergreen/system-function"
+EOF
+
 exit 0

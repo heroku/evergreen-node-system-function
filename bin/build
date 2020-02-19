@@ -17,7 +17,10 @@ npm install
 popd
 
 mkdir -p $system_dir/env.launch
-echo -n "$system_dir" > $system_dir/env.launch/FUNCTION_URI.override
+# riff requires the fn be inside /workspace
+# create a symbolic link to the built layer
+mkdir -p /workspace/.evergreen
+ln -s $system_dir /workspace/.evergreen/system-function
 echo -n "/workspace" > $system_dir/env.launch/USER_FUNCTION_URI.override
 
 exit 0
