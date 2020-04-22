@@ -1,6 +1,20 @@
-const {Message} = require('@projectriff/message');
+const { Message } = require('@projectriff/message');
+const {Logger, LoggerLevel} = require('@salesforce/core/lib/logger');
 
-const {DEBUG, MIDDLEWARE_FUNCTION_URI, USER_FUNCTION_URI} = process.env;
+const { DEBUG, MIDDLEWARE_FUNCTION_URI, USER_FUNCTION_URI } = process.env;
+
+function createLogger(requestID) {
+  const level = DEBUG ? LoggerLevel.DEBUG : LoggerLevel.INFO;
+
+  Logger.addStream({stream: process.stderr});
+  Logger.setLevel(level);
+
+  if (requestID) {
+    Logger.addField('request_id', requestID);
+  }
+
+  return Logger;
+}
 
 function getMiddlewareFunctions(uri) {
   const middlewareFunctions = [];
@@ -23,24 +37,30 @@ function getFunction(uri) {
   return mod;
 }
 
-const middlewareFns = getMiddlewareFunctions(MIDDLEWARE_FUNCTION_URI);
-const userFn = getFunction(USER_FUNCTION_URI);
+const systemLogger = createLogger();
+
+let middlewareFns;
+let userFn;
+try {
+  middlewareFns = getMiddlewareFunctions(MIDDLEWARE_FUNCTION_URI);
+  userFn = getFunction(USER_FUNCTION_URI);
+} catch (error) {
+  systemLogger.error(error.toString());
+  throw error;
+}
 
 module.exports = async (message) => {
   const payload = message.payload;
+
   // Remap headers to a standard JS object
   const headers = message.headers.toRiffHeaders();
-  Object.keys(headers).map((key) => {headers[key] = message.headers.getValue(key)});
-  if (DEBUG) {
-    console.log('==System Function Start==');
-    console.log(`HEADERS: ${JSON.stringify(headers)}`);
-    console.log(`PAYLOAD: ${JSON.stringify(payload)}`);
-    console.log(`MIDDLEWARE_FUNCTION_URI: ${MIDDLEWARE_FUNCTION_URI}`);
-    console.log('==Middleware Function(s) Start==');
-  }
+  Object.keys(headers).map((key) => { headers[key] = message.headers.getValue(key) });
+
+  const requestId = headers['ce-id'] || headers['x-request-id'];
+  const requestLogger = createLogger(requestId);
 
   const state = {};
-  let middlewareResult = [payload];
+  let middlewareResult = [payload, requestLogger];
 
   await Promise.all(middlewareFns.map(async (middleware) => {
     try {
@@ -49,41 +69,30 @@ module.exports = async (message) => {
         payload: typeof payload == "object" ? Object.assign({}, payload) : payload,
         headers: Object.assign({}, headers)
       };
-      if (DEBUG) {
-        console.log(`MIDDLEWARE INPUT: ${JSON.stringify(input)}`);
-        console.log(`MIDDLEWARE STATE: ${JSON.stringify(state)}`);
-        console.log(`MIDDLEWARE RESULT: ${JSON.stringify(middlewareResult)}`);
-      }
+
       middlewareResult = await middleware(input, state, middlewareResult);
-      if (DEBUG) {
-        console.log(`MIDDLEWARE RETURNED: ${JSON.stringify(middlewareResult)}`);
-      }
       if (!Array.isArray(middlewareResult)) {
         throw new Error('Invalid return type, middleware must return an array of arguments')
       }
-    } catch (err) {
-      throw err
+    } catch (error) {
+      requestLogger.error(error.toString());
+      throw error;
     }
-  })
-  );
+  }));
 
-  if (DEBUG) {
-    console.log('==Middleware Function(s) End==');
-    console.log(`USER FUNCTION RECEIVED ARGS: ${JSON.stringify(middlewareResult)}`);
+  let result;
+  try {
+    result = await userFn(...middlewareResult);
+  } catch (error) {
+    requestLogger.error(error.toString());
+    throw error;
   }
 
-  const result = await userFn(...middlewareResult);
-
-  if (DEBUG) {
-    console.log('RESULT', result);
-    console.log('==System Function End==');
-  }
-  return result;
+  // If userFn does not have explicit return, it would be undefined, when || with null, it would be null
+  // for Accept header, riff node invoker's application/json marshaller Buffer.from(JSON.stringify(null))
+  return result || null;
 };
-module.exports.$argumentTransformers = [
-  (message) => {
-    return message;
-  }
-];
+
+module.exports.$argumentType = 'message';
 module.exports.$init = userFn.$init;
 module.exports.$destroy = userFn.$destroy;
