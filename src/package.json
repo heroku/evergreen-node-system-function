@@ -1,9 +1,10 @@
 {
-  "name": "evergreen-node-system-function",
-  "version": "0.0.1",
-  "description": "A node function to integrate with riff and an evergreen function.",
+  "name": "node-function-buildpack",
+  "version": "0.4.3",
+  "description": "A buildpack to build node functions",
   "dependencies": {
-    "@projectriff/message": "^1.0.0"
+    "@projectriff/message": "^1.0.0",
+    "@salesforce/core": "^2.2.0"
   },
   "devDependencies": {},
   "scripts": {
@@ -11,12 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/heroku/evergreen-node-system-function.git"
+    "url": "git+https://github.com/heroku/node-function-buildpack.git"
   },
   "author": "@heroku",
-  "license": "MIT",
+  "license": "ISC",
   "bugs": {
-    "url": "https://github.com/heroku/evergreen-node-system-function/issues"
+    "url": "https://github.com/heroku/node-function-buildpack/issues"
   },
-  "homepage": "https://github.com/heroku/evergreen-node-system-function#readme"
+  "homepage": "https://github.com/heroku/node-function-buildpack#readme"
 }
