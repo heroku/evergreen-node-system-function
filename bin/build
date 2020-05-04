@@ -25,7 +25,7 @@ cached_lock_checksum=$(yj -t < "$layers_dir/node_modules.toml" | jq -r ".metadat
 
 if [[ "$local_lock_checksum" == "$cached_lock_checksum" ]] ; then
     echo "using previous node_modules from cache"
-    cp -r "$node_modules_dir" "$system_dir/node_modules"
+    cp -r "$node_modules_dir/." "$system_dir/node_modules"
 else
     echo "cache = true" > "$node_modules_dir.toml"
     {
@@ -37,7 +37,7 @@ else
     pushd $system_dir
       npm install
     popd
-    cp -r "$system_dir/node_modules" "$node_modules_dir"
+    cp -r "$system_dir/node_modules/." "$node_modules_dir"
 fi
 
 mkdir -p $system_dir/env.launch
