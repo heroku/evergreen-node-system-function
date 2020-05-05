@@ -1,9 +1,10 @@
 {
   "name": "evergreen-node-system-function",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A node function to integrate with riff and an evergreen function.",
   "dependencies": {
-    "@projectriff/message": "^1.0.0"
+    "@projectriff/message": "^1.0.0",
+    "@salesforce/core": "^2.2.0"
   },
   "devDependencies": {},
   "scripts": {

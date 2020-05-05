@@ -5,16 +5,40 @@ set -o pipefail
 layers_dir=$1
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo -e 'launch = true' > $layers_dir/system-function.toml
+node_modules_dir=$layers_dir/node_modules
 system_dir=$layers_dir/system-function
+
+# create the caching layer for our node_modules
+touch "$node_modules_dir.toml"
+mkdir -p "$node_modules_dir"
+
+# where system function source code will be located and built
 mkdir -p $system_dir
 
 echo "---> Evergreen Node System Function Buildpack"
 
 # COPY and install node/npm on into a layer
 cp -R $DIR/../src/* $system_dir
-pushd $system_dir
-npm install
-popd
+
+local_lock_checksum=$(sha256sum "$system_dir/package-lock.json" | cut -d " " -f 1)
+cached_lock_checksum=$(yj -t < "$layers_dir/node_modules.toml" | jq -r ".metadata.package_lock_checksum")
+
+if [[ "$local_lock_checksum" == "$cached_lock_checksum" ]] ; then
+    echo "using previous node_modules from cache"
+    cp -r "$node_modules_dir/." "$system_dir/node_modules"
+else
+    echo "cache = true" > "$node_modules_dir.toml"
+    {
+      echo "build = false"
+      echo "launch = false"
+      echo -e "[metadata]\npackage_lock_checksum = \"$local_lock_checksum\""
+    } >> "$node_modules_dir.toml"
+
+    pushd $system_dir
+      npm install
+    popd
+    cp -r "$system_dir/node_modules/." "$node_modules_dir"
+fi
 
 mkdir -p $system_dir/env.launch
 echo -n "$system_dir" > $system_dir/env.launch/FUNCTION_URI.override
