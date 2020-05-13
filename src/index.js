@@ -1,6 +1,4 @@
-const { Message } = require('@projectriff/message');
 const {Logger, LoggerLevel} = require('@salesforce/core/lib/logger');
-
 const { DEBUG, MIDDLEWARE_FUNCTION_URI, USER_FUNCTION_URI } = process.env;
 
 function createLogger(requestID) {
@@ -52,12 +50,13 @@ try {
 
 module.exports = async (message) => {
   const payload = message.payload;
+  console.log(JSON.stringify(payload));
 
   // Remap headers to a standard JS object
   const headers = message.headers.toRiffHeaders();
   Object.keys(headers).map((key) => { headers[key] = message.headers.getValue(key) });
 
-  const requestId = headers['ce-id'] || headers['x-request-id'];
+  const requestId = headers['Ce-Id'] || headers['X-Request-Id'];
   const requestLogger = createLogger(requestId);
 
   const state = {};
@@ -91,9 +90,9 @@ module.exports = async (message) => {
 
   // If userFn does not have explicit return, it would be undefined, when || with null, it would be null
   // for Accept header, riff node invoker's application/json marshaller Buffer.from(JSON.stringify(null))
-  return result || null;
+  return result || '';
 };
 
-module.exports.$argumentType = 'message';
+module.exports.$argumentTransformers = [message => message];
 module.exports.$init = userFn.$init;
 module.exports.$destroy = userFn.$destroy;
