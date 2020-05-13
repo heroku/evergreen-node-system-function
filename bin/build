@@ -41,7 +41,6 @@ else
 fi
 
 mkdir -p $system_dir/env.launch
-echo -n "$system_dir" > $system_dir/env.launch/FUNCTION_URI.override
 echo -n "/workspace" > $system_dir/env.launch/USER_FUNCTION_URI.override
 
 exit 0
